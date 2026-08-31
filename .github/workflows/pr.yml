@@ -1,0 +1,67 @@
+---
+name: PR Validation
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/**"
+      - ".github/dependabot.yml"
+      - "docker-bake.hcl"
+      - "runtimes/**"
+      - "scripts/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  build:
+    name: Validate and Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up QEMU for multi-platform support
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Prepare build metadata
+        id: prep
+        run: |
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Bake build definition
+        env:
+          REGISTRY: ${{ steps.prep.outputs.registry }}
+          REVISION: ${{ github.sha }}
+          CREATED: ${{ steps.prep.outputs.created }}
+          TAG: pr-${{ github.event.pull_request.number }}
+        run: |
+          docker buildx bake --print
+
+      - name: Build images with SBOM and Provenance
+        id: bake
+        uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
+        env:
+          REGISTRY: ${{ steps.prep.outputs.registry }}
+          REVISION: ${{ github.sha }}
+          CREATED: ${{ steps.prep.outputs.created }}
+          TAG: pr-${{ github.event.pull_request.number }}
+          CACHE_FROM: type=gha
+          CACHE_TO: type=gha,mode=max
+        with:
+          source: .
+          targets: default
+          push: false
+          provenance: mode=max
+          sbom: true
