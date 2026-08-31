@@ -1,0 +1,102 @@
+name: Build and Publish Runtimes
+
+"on":
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+    paths:
+      - "runtimes/**"
+      - "scripts/**"
+      - "docker-bake.hcl"
+      - ".github/workflows/build.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "runtimes/**"
+      - "scripts/**"
+      - "docker-bake.hcl"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write          # Required for Sigstore Cosign OIDC signing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up QEMU for multi-platform support
+        uses: docker/setup-qemu-action@49b01bf5cb88a22a77e19d8fbe8387c4a4f4bce7 # v3.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Prepare build metadata
+        id: prep
+        run: |
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Bake build definition
+        env:
+          REGISTRY: ${{ steps.prep.outputs.registry }}
+          REVISION: ${{ github.sha }}
+          CREATED: ${{ steps.prep.outputs.created }}
+          TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+        run: |
+          docker buildx bake --print
+
+      - name: Install Sigstore Cosign
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8ba6e8d26d89e5dce02f1 # v3.7.0
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push images with SBOM and Provenance
+        id: bake
+        uses: docker/bake-action@4ba43194b63f048c69ebb4146706e4ffc1868f00 # v5.8.0
+        env:
+          REGISTRY: ${{ steps.prep.outputs.registry }}
+          REVISION: ${{ github.sha }}
+          CREATED: ${{ steps.prep.outputs.created }}
+          TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          CACHE_FROM: type=gha
+          CACHE_TO: type=gha,mode=max
+        with:
+          targets: default
+          push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Sign published images with Cosign (Keyless OIDC)
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        env:
+          METADATA: ${{ steps.bake.outputs.metadata }}
+          REGISTRY: ${{ steps.prep.outputs.registry }}
+        run: |
+          echo "${METADATA}" | jq -r 'to_entries[].value["containerimage.digest"] // empty' | sort -u | while read -r digest; do
+            if [ -n "${digest}" ]; then
+              echo "Signing ${REGISTRY}/runtime@${digest}..."
+              cosign sign --yes "${REGISTRY}/runtime@${digest}"
+            fi
+          done
+
+

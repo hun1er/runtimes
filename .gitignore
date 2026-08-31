@@ -1,0 +1,34 @@
+# =================================================
+#   Docker
+# =================================================
+
+.buildx-cache/
+
+# =================================================
+#   Temporary & OS-specific files
+# =================================================
+
+!?*.[Cc]ache/
+*.bak
+*.[Cc]ache
+.cache/
+*.env
+*.log
+*.rptproj.bak
+*.swp
+*.tmp
+*~
+~$*
+
+# =================================================
+#   Visual Studio Code
+# =================================================
+
+.history/
+.vscode/*
+!.vscode/*.code-snippets
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+*.vsix
