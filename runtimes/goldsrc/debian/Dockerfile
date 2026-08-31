@@ -7,6 +7,9 @@ FROM ${BASE_IMAGE}
 # Build-time variables
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Switch to root for system setup
+USER root
+
 # Container setup
 RUN --mount=type=bind,from=scripts,target=/mnt/scripts \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -27,8 +30,11 @@ RUN --mount=type=bind,from=scripts,target=/mnt/scripts \
     libtinfo6:i386 \
     libc6-dbg:i386 \
     gdb \
-    gdbserver \
-    iproute2; \
+    gdbserver; \
     \
     # System cleanup
     sh /mnt/scripts/cleanup.sh
+
+# Runtime user context
+USER ${USER}
+WORKDIR /home/${USER}

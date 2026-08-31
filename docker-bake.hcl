@@ -55,6 +55,15 @@ variable "TZ" {
   }
 }
 
+# Container username
+variable "USER" {
+  default = "container"
+  validation {
+    condition     = USER != ""
+    error_message = "The variable 'USER' must not be empty."
+  }
+}
+
 # Prepend registry prefix to image name
 function "prefix" {
   params = [name]
@@ -110,7 +119,8 @@ target "_common" {
     "type=sbom"
   ]
   args = {
-    TZ = "${TZ}"
+    TZ   = "${TZ}"
+    USER = "${USER}"
   }
   labels = {
     "org.opencontainers.image.vendor"        = "the_hunter"
