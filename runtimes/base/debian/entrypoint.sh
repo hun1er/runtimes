@@ -16,6 +16,13 @@ export INTERNAL_IP
 # Switch to the container's working directory
 cd "${WORKDIR}" || exit 1
 
+# Load optional runtime configuration file if present
+CONFIG_FILE="${RUNTIME_CONFIG:-$WORKDIR/.runtime.conf}"
+if [ -f "$CONFIG_FILE" ]; then
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+fi
+
 # Launch target process
 if [ "$#" -gt 0 ]; then
     exec "$@"
