@@ -43,6 +43,7 @@ RUN --mount=type=bind,from=scripts,target=/mnt/scripts \
     ca-certificates \
     curl \
     iproute2 \
+    rsync \
     tar \
     tzdata; \
     \
