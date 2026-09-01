@@ -13,7 +13,7 @@ INTERNAL_IP="${INTERNAL_IP:-127.0.0.1}"
 export INTERNAL_IP
 
 # Switch to the container's working directory
-cd "${HOME:-/home/container}" || exit 1
+cd "${WORKDIR}" || exit 1
 
 # If STARTUP variable is defined, parse and execute it; otherwise handle command arguments
 if [ -n "${STARTUP}" ]; then
