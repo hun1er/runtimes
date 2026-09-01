@@ -64,4 +64,4 @@ USER ${USER}
 WORKDIR ${WORKDIR}
 
 # Runtime entrypoint
-CMD [ "/bin/bash", "/entrypoint.sh" ]
+ENTRYPOINT [ "/bin/bash", "/entrypoint.sh" ]
