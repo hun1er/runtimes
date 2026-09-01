@@ -37,4 +37,4 @@ RUN --mount=type=bind,from=scripts,target=/mnt/scripts \
 
 # Runtime user context
 USER ${USER}
-WORKDIR /home/${USER}
+WORKDIR ${WORKDIR}

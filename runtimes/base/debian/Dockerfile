@@ -4,12 +4,14 @@ FROM debian:stable-slim
 # Build-time variables
 ARG TZ="UTC" \
     USER="container" \
+    WORKDIR="/home/${USER}" \
     DEBIAN_FRONTEND=noninteractive
 
 # Environment variables
 ENV TZ="${TZ}" \
     USER="${USER}" \
     HOME="/home/${USER}" \
+    WORKDIR="${WORKDIR}" \
     LANG="C.UTF-8" \
     LC_ALL="C.UTF-8" \
     DEBUGINFOD_URLS="https://debuginfod.debian.net"
@@ -59,7 +61,7 @@ RUN --mount=type=bind,from=scripts,target=/mnt/scripts \
 
 # Runtime user context
 USER ${USER}
-WORKDIR /home/${USER}
+WORKDIR ${WORKDIR}
 
 # Runtime entrypoint
 CMD [ "/bin/bash", "/entrypoint.sh" ]

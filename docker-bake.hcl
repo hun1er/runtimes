@@ -64,6 +64,15 @@ variable "USER" {
   }
 }
 
+# Container working directory
+variable "WORKDIR" {
+  default = "/home/${USER}"
+  validation {
+    condition     = WORKDIR != ""
+    error_message = "The variable 'WORKDIR' must not be empty."
+  }
+}
+
 # Prepend registry prefix to image name
 function "prefix" {
   params = [name]
@@ -119,8 +128,9 @@ target "_common" {
     "type=sbom"
   ]
   args = {
-    TZ   = "${TZ}"
-    USER = "${USER}"
+    TZ      = "${TZ}"
+    USER    = "${USER}"
+    WORKDIR = "${WORKDIR}"
   }
   labels = {
     "org.opencontainers.image.vendor"        = "the_hunter"
