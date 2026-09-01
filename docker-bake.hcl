@@ -56,20 +56,20 @@ variable "TZ" {
 }
 
 # Container username
-variable "USER" {
+variable "CONTAINER_USER" {
   default = "container"
   validation {
-    condition     = USER != ""
-    error_message = "The variable 'USER' must not be empty."
+    condition     = CONTAINER_USER != ""
+    error_message = "The variable 'CONTAINER_USER' must not be empty."
   }
 }
 
 # Container working directory
-variable "WORKDIR" {
-  default = "/home/${USER}"
+variable "CONTAINER_WORKDIR" {
+  default = "/home/${CONTAINER_USER}"
   validation {
-    condition     = WORKDIR != ""
-    error_message = "The variable 'WORKDIR' must not be empty."
+    condition     = CONTAINER_WORKDIR != ""
+    error_message = "The variable 'CONTAINER_WORKDIR' must not be empty."
   }
 }
 
@@ -129,8 +129,8 @@ target "_common" {
   ]
   args = {
     TZ      = "${TZ}"
-    USER    = "${USER}"
-    WORKDIR = "${WORKDIR}"
+    USER    = "${CONTAINER_USER}"
+    WORKDIR = "${CONTAINER_WORKDIR}"
   }
   labels = {
     "org.opencontainers.image.vendor"        = "the_hunter"
