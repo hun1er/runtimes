@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Give everything time to initialize
 sleep 1
@@ -15,8 +16,10 @@ export INTERNAL_IP
 # Switch to the container's working directory
 cd "${WORKDIR}" || exit 1
 
-# If STARTUP variable is defined, parse and execute it; otherwise handle command arguments
-if [ -n "${STARTUP}" ]; then
+# Launch target process
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+elif [ -n "${STARTUP}" ]; then
     # Convert "{{VARIABLE}}" syntax into standard shell "${VARIABLE}" format
     CMD_EXPANDED=$(echo "${STARTUP}" | sed -e 's/{{/${/g' -e 's/}}/}/g')
 
@@ -24,8 +27,6 @@ if [ -n "${STARTUP}" ]; then
     # and then execute it with the env from the container itself.
     printf "\033[1m\033[33m%s@%s~ \033[0m%s\n" "${USER:-container}" "$(hostname)" "${CMD_EXPANDED}"
     eval "exec ${CMD_EXPANDED}"
-elif [ $# -gt 0 ]; then
-    exec "$@"
 else
     exec /bin/bash
 fi
