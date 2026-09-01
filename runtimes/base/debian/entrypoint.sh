@@ -34,6 +34,37 @@ if [ -d "$HOOKS_DIR" ]; then
     done
 fi
 
+# Synchronize files via rsync if RSYNC_SOURCE is configured
+if [ -n "$RSYNC_SOURCE" ]; then
+    echo "[Runtime] Starting rsync from source: $RSYNC_SOURCE"
+
+    # Use custom RSYNC_ARGS if provided, otherwise fallback to sensible defaults
+    if [ -n "$RSYNC_ARGS" ]; then
+        # shellcheck disable=SC2206
+        RSYNC_EXEC_ARGS=($RSYNC_ARGS)
+    else
+        RSYNC_EXEC_ARGS=("-av" "--no-owner" "--no-group" "--timeout=10")
+    fi
+
+    # Optional exclude file
+    EXCLUDE_FILE="${RSYNC_EXCLUDE_FILE:-$WORKDIR/.rsync-exclude}"
+    if [ -f "$EXCLUDE_FILE" ]; then
+        RSYNC_EXEC_ARGS+=("--exclude-from=$EXCLUDE_FILE")
+    fi
+
+    # Optional extra arguments from user
+    if [ -n "$RSYNC_EXTRA_ARGS" ]; then
+        # shellcheck disable=SC2206
+        RSYNC_EXEC_ARGS+=($RSYNC_EXTRA_ARGS)
+    fi
+
+    if rsync "${RSYNC_EXEC_ARGS[@]}" "$RSYNC_SOURCE" "$WORKDIR/"; then
+        echo "[Runtime] Synchronization completed successfully."
+    else
+        echo "[Runtime:WARNING] Rsync failed, continuing with existing files..."
+    fi
+fi
+
 # Launch target process
 if [ "$#" -gt 0 ]; then
     exec "$@"
