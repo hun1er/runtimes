@@ -23,6 +23,17 @@ if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 fi
 
+# Execute optional pre-startup lifecycle hooks
+HOOKS_DIR="${HOOKS_DIR:-$WORKDIR/.entrypoint.d}"
+if [ -d "$HOOKS_DIR" ]; then
+    for script in "$HOOKS_DIR"/*.sh; do
+        if [ -f "$script" ] && [ -x "$script" ]; then
+            echo "[Runtime] Executing hook: $script"
+            "$script"
+        fi
+    done
+fi
+
 # Launch target process
 if [ "$#" -gt 0 ]; then
     exec "$@"
