@@ -66,6 +66,12 @@ if [[ -n "$RSYNC_MAP" ]]; then
         RSYNC_BASE_ARGS+=("--filter=merge $FILTER_FILE")
     fi
 
+    # Optional include file
+    INCLUDE_FILE="${RSYNC_INCLUDE_FILE:-$WORKDIR/.rsync-include}"
+    if [[ -f "$INCLUDE_FILE" ]]; then
+        RSYNC_BASE_ARGS+=("--include-from=$INCLUDE_FILE")
+    fi
+
     # Optional exclude file
     EXCLUDE_FILE="${RSYNC_EXCLUDE_FILE:-$WORKDIR/.rsync-exclude}"
     if [[ -f "$EXCLUDE_FILE" ]]; then
