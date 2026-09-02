@@ -60,6 +60,12 @@ if [[ -n "$RSYNC_MAP" ]]; then
         RSYNC_BASE_ARGS=("-av" "--no-owner" "--no-group" "--timeout=10")
     fi
 
+    # Optional filter file
+    FILTER_FILE="${RSYNC_FILTER_FILE:-$WORKDIR/.rsync-filter}"
+    if [[ -f "$FILTER_FILE" ]]; then
+        RSYNC_BASE_ARGS+=("--filter=merge $FILTER_FILE")
+    fi
+
     # Optional exclude file
     EXCLUDE_FILE="${RSYNC_EXCLUDE_FILE:-$WORKDIR/.rsync-exclude}"
     if [[ -f "$EXCLUDE_FILE" ]]; then
